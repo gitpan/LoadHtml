@@ -19,7 +19,7 @@ company which hosts this site.  Direct all comments or complaints to them
 </CENTER>
 
 
-<DIV ALIGN=right><I><FONT SIZE=-1>Updated: 08/06/2007</FONT></I></DIV>
+<DIV ALIGN=right><I><FONT SIZE=-1>Updated: 09/07/2007</FONT></I></DIV>
 
 <HR WIDTH="80%" SIZE="5">
 <H1>
@@ -68,8 +68,21 @@ are completely portable across all platforms which support Perl and CGI,
 including Unix and Windows.
 
 <P>Click for <A HREF="#Requirements">System Requirements</A>.
+
 <H3>
-<A NAME="GUI"></A><FONT COLOR="#FFDEAD">I) Overview / User-callable Functions.</FONT></H3>
+<A NAME="SYNOPSIS"></A><FONT COLOR="#FFDEAD">I) Synopsis.</FONT></H3>
+
+use LoadHtml;
+<br>print "Content-type: text/html", "\n";
+<br>&loadhtml('mytemplate_file.html',
+<br>    -ascalararg => 'Display this string',
+<br>    -anarrayarg => ['string1', 'string2', 'string3'],
+<br>    -ahasharg => {'key1' => 10, 'key2' => 20, 'key3' => 30},
+<br>    -amatrix => [[1, 2, 3], [4, 5, 6]]
+<br>);
+
+<H3>
+<A NAME="OVERVIEW"></A><FONT COLOR="#FFDEAD">II) Overview / User-callable Functions.</FONT></H3>
 The following functions are user-callable:
 
 <P>loadhtml($htmlfile,@args)
@@ -107,7 +120,7 @@ else.&nbsp; Within the "LOOP" and "SELECTLIST" constructs, html is dynamically
 generated for each element within the resulting list.
 <BR>&nbsp;
 <H3>
-<A NAME="recmanip"></A><FONT COLOR="#FFDEAD">II) Parameter Substitution
+<A NAME="recmanip"></A><FONT COLOR="#FFDEAD">III) Parameter Substitution
 and Special HTML Control Statements.</FONT></H3>
 loadhtml is called with the 1st argument being the filename of the HTML
 template file to load.&nbsp; Each subsequent argument corresponds to a
@@ -742,7 +755,7 @@ of the key values, then "-NO SUCH VALUE!-> is displayed.
 (between "&lt;!HASH...>" and "&lt;!/HASH>) can be enclosed as a comment ("&lt!-- ... -->").
 
 <H3>
-&nbsp;<A NAME="Functions"></A><FONT COLOR="#FFDEAD">V). User-callable Functions:</FONT></H3>
+&nbsp;<A NAME="Functions"></A><FONT COLOR="#FFDEAD">IV). User-callable Functions:</FONT></H3>
 
 <P><B>loadhtml($htmlfile, @args)</B></P>
 
@@ -837,7 +850,7 @@ Best way to set this is to call "loadhtml_package(__PACKAGE__);".</P>
 
 
 <H3>
-&nbsp;<A NAME="Requirements"></A><FONT COLOR="#FFDEAD">VI). Minimum System
+&nbsp;<A NAME="Requirements"></A><FONT COLOR="#FFDEAD">V). Minimum System
 Requirements:</FONT></H3>
 
 <UL>1) Any system supporting Perl and CGI.

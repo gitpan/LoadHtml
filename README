@@ -20,6 +20,16 @@ To install this module, run the following commands:
     make test
     make install
 
+SYNOPSIS
+
+     use LoadHtml;
+     print "Content-type: text/html", "\n";
+     &loadhtml('mytemplate_file.html',
+        -ascalararg => 'Display this string',
+        -anarrayarg => ['string1', 'string2', 'string3'],
+        -ahasharg => {'key1' => 10, 'key2' => 20, 'key3' => 30},
+        -amatrix => [[1, 2, 3], [4, 5, 6]]
+     );
 
 COPYRIGHT AND LICENCE
 
@@ -29,7 +39,7 @@ This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
 
-Documentation Updated: 08/06/2007
+Documentation Updated: 09/07/2007
 
 The LoadHtml Home Page
 

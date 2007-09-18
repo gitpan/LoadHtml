@@ -1,5 +1,10 @@
 Revision history for LoadHtml
 
-0.01    Date/time
+7.00    Date/time
         First version, released on an unsuspecting world.
+7.01	2007/09/07
+	Updated documentation (added synopsis)
+7.02	2007/09/17
+	Added support for list of hash-keys to drive sorting of hash-driven loops. 
+	ie.  <!LOOP listparm hashparm, ...>
 

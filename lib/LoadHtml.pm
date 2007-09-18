@@ -15,7 +15,7 @@ eval 'use  LWP::Simple; $useLWP = 1;';
 @EXPORT = qw(loadhtml_package loadhtml buildhtml dohtml modhtml AllowEvals cnvt set_poc 
 		SetListSeperator SetRegices SetHtmlHome);
 
-our $VERSION = '7.00';
+our $VERSION = '7.02';
 
 local ($_);
 
@@ -208,7 +208,6 @@ sub makamath   #ADDED 20031028 TO SUPPORT IN-PARM EXPRESSIONS.
 sub makaloop
 {
 	my ($parms, $parmnos, $loopcontent, $looplabel) = @_;
-
 	my $rtn = '';
 	my ($lc,$i0,$i,$j,%loopparms);
 	my (@forlist);   #MOVED UP 20030515. - ORDERED LIST OF ALL HASH KEYS (IFF DRIVING PARAMETER IS A HASHREF).
@@ -229,7 +228,7 @@ sub makaloop
 	}
 	$parmnos =~ s/\s+/,/go;
 
-	my (@listparms) = split(/,/o, $parmnos);
+	my (@listparms) = split(/\,/o, $parmnos);
 #1ST IF-CHOICE ADDED 20070807 TO SUPPORT AN INDEX ARRAY OF HASH KEYS W/DRIVING PARAMETER OF TYPE HASHREF:
 	if (ref($parms->{$listparms[0]}) eq 'HASH' && defined($vectorlist[0]) && defined(${$parms->{$listparms[0]}}{$vectorlist[0]}))
 	{
@@ -261,7 +260,6 @@ sub makaloop
 	}
 	else   #NO INDEX LIST, SEE IF WE HAVE INCREMENT EXPRESSION (ie. "0..10|2"), ELSE DETERMINE FROM 1ST PARAMETER:
 	{
-		@vectorlist = ();
 		my ($istart) = 0;
 		my ($iend) = undef;
 		my ($iinc) = 1;
@@ -275,6 +273,22 @@ sub makaloop
 		if (ref($parms->{$listparms[0]}) eq 'HASH')
 		{
 			@forlist = sort keys(%{$parms->{$listparms[0]}});
+			if ($#vectorlist >= 0) {       #THIS IF ADDED 20070914 TO SUPPORT ALTERNATELY SORTED LIST TO DRIVE HASH-DRIVEN LOOPS:
+				my @keys = @vectorlist;   #IE. <!LOOP listparm hashparm, ...>
+				@vectorlist = ();
+				for (my $i=0;$i<=$#keys;$i++)
+				{
+					for (my $j=0;$j<=$#forlist;$j++)
+					{
+						if ($keys[$i] eq $forlist[$j])
+						{
+							push (@vectorlist, $forlist[$j]);
+							last;
+						}
+					}
+				}
+				@forlist = @vectorlist;
+			}
 			$iend = $#forlist  unless (defined $iend);
 		}
 		else
@@ -287,8 +301,8 @@ sub makaloop
 				$iend = (ref($parms->{$listparms[0]}) eq 'ARRAY'
 				    ? $#{$parms->{$listparms[0]}} : 0);
 			}
-#print "<BR>-iend=$iend=\n";
 		}
+		@vectorlist = ();
 		$i = $istart;
 		$i0 = 0;
 		while (1)
