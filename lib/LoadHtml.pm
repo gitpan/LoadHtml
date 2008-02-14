@@ -15,7 +15,7 @@ eval 'use  LWP::Simple; $useLWP = 1;';
 @EXPORT = qw(loadhtml_package loadhtml buildhtml dohtml modhtml AllowEvals cnvt set_poc 
 		SetListSeperator SetRegices SetHtmlHome);
 
-our $VERSION = '7.02';
+our $VERSION = '7.04';
 
 local ($_);
 
@@ -294,8 +294,6 @@ sub makaloop
 		else
 		{
 #no strict 'refs';
-#print "<BR>-???- lp=".join('|',@listparms)."= parm0=$parms->{$listparms[0]}=\n";
-#print "<BR>-REF=".ref($parms->{$listparms[0]})."=\n";
 			unless (defined $iend)
 			{
 				$iend = (ref($parms->{$listparms[0]}) eq 'ARRAY'
@@ -360,13 +358,11 @@ sub makaloop
 					my $eval0 = $eval;    #ADDED 20070831 TO SAVE FOR POSSIBLE REGRESSION.
 					$eval =~ s/$one/parms\-\>\{$one\}/;
 					$loopparms{$j} = eval $eval;
-#print "\n---- j=$j= parm=$parms->{$j}= eval=$eval= lp now=$loopparms{$j}= at=$@=\n";
 #					$loopparms{$j} = $parms->{$j}  if ($@);   #CHGD. TO NEXT 20070831 TO ALLOW RECURSION, IE. '$matrix->[*][*][0]', ETC.
 					if ($@)
 					{
 						$eval0 =~ s/(?:\-\>)?\[\d+\]//;  #STRIP OFF HIGH-ORDER DIMENSION SO THAT REFERENCE IS CORRECT W/N THE RECURSIVE CALL TO MAKALOOP!
 						$loopparms{$j} = $eval0;
-#print "-!!!- regressing back to lp=$loopparms{$j}=\n";
 					}
 				}
 				else
@@ -380,7 +376,6 @@ sub makaloop
 				$loopparms{$j} = $parms->{$j};
 			}
 		}
-#print "<BR>-???- ll=$looplabel= lc=$lc=\n";
 # (:# = CURRENT INDEX NUMBER INTO PARAMETER VECTORS; :* = ZERO-BASED ITERATION#; :% = CURRENT HASH KEY, IFF DRIVEN BY A HASHREF; :^ = NO. OF ITERATIONS TO BE DONE)
 		$lc =~ s#<\!\:\%(${looplabel})([^>]*?)>#&makanop2($parms,$forlist[$i],$2)#egs;  #MOVED HERE 20070713 FROM 267l TO MAKE :%_loopname HOLD KEY OF 1ST HASH!
 		$lc =~ s/\:\%${looplabel}/$forlist[$i]/egs;  #MOVED HERE 20070713 FROM 267l TO MAKE :%_loopname HOLD KEY OF 1ST HASH!
@@ -393,8 +388,6 @@ sub makaloop
 		$lc =~ s#<\!\:\*(${looplabel})([^>]*?)>#&makanop2($parms,$icnt,$2)#egs;
 		$lc =~ s/\:\*${looplabel}([\+\-\*]\d+)/eval("$icnt$1")/egs;   #ADDED 20020926 TO RETURN INCREMENT NUMBER (1ST = 0);
 		$lc =~ s/\:\*${looplabel}/$icnt/egs;
-#foreach my $x (sort keys %loopparms) { print "<BR>-loopparm($x)=$loopparms{$x}=\n"; };
-#print "<BR>--------------\n";
 
 		#IF-STMT BELOW ADDED 20070830 TO EMULATE Template::Toolkit's ABILITY TO REFERENCE
 		#SUBCOMPONENTS OF A REFERENCE BY NAME, IE:
@@ -408,10 +401,9 @@ sub makaloop
 			{
 				unless (defined $loopparms{$j})
 				{
-#print "<BR>-!!!- will convert $j w/1st parm a HASH!\n";
-					$lc =~ s#<\!\:$j([^>]*?)\:>.*?<\!\:\/\1>#&makanop1($parms->{$listparms[0]}{$i},$j,$1)#egs;
-					$lc =~ s#<\!\:$j([^>]*?)>#&makanop1($parms->{$listparms[0]}{$i},$j,$1)#egs;
-					$lc =~ s/\:\{$j\}/&makaswap($parms->{$listparms[0]}{$i},$j)/egs;   #ALLOW ":{word}"!
+					$lc =~ s#<\!\:$j([^>]*?)\:>.*?<\!\:\/\1>#&makanop1($parms->{$listparms[0]}{$forlist[$i]},$j,$1)#egs;
+					$lc =~ s#<\!\:$j([^>]*?)>#&makanop1($parms->{$listparms[0]}{$forlist[$i]},$j,$1)#egs;
+					$lc =~ s/\:\{$j\}/&makaswap($parms->{$listparms[0]}{$forlist[$i]},$j)/egs;   #ALLOW ":{word}"!
 				}
 			}
 		}
@@ -421,7 +413,6 @@ sub makaloop
 			{
 				unless (defined $loopparms{$j})
 				{
-#print "<BR>-!!!- will convert $j w/1st parm an ARRAY!\n";
 					$lc =~ s#<\!\:$j([^>]*?)\:>.*?<\!\:\/\1>#&makanop1($parms->{$listparms[0]}[$i],$j,$1)#egs;
 					$lc =~ s#<\!\:$j([^>]*?)>#&makanop1($parms->{$listparms[0]}[$i],$j,$1)#egs;
 					$lc =~ s/\:\{$j\}/&makaswap($parms->{$listparms[0]}[$i],$j)/egs;   #ALLOW ":{word}"!
@@ -557,16 +548,19 @@ sub doeval
 	{
 		my ($dfltexpn) = $expn;
 		$fid =~ s/^\s+//o;
+		$fid =~ s/^.*\=\s*//o;
+		$fid =~ s/[\"\']//go;
 		$fid =~ s/\s+$//o;
 		if (open(HTMLIN,$fid))
 		{
-			$expn = (<HTMLIN>);
+			my @expns = (<HTMLIN>);
+			$expn = join('', @expns);
 			close HTMLIN;
 		}
 		else
 		{
 			$expn = LWP::Simple::get($fid)  if ($useLWP);
-			unless(defined($expn) && $expn =~ /\S/o)
+			unless (defined($expn) && $expn =~ /\S/o)
 			{
 				$expn = $dfltexpn;
 				return (&html_error("Could not load embedded perl file: \"$fid\"!"))
@@ -577,13 +571,14 @@ sub doeval
 	$expn =~ s/^\s*<!--//o;   #STRIP OFF ANY HTML COMMENT TAGS.
 	$expn =~ s/-->\s*$//o;
 	return ('')  if ($expn =~ /\`/o);   #DON'T ALLOW GRAVS!
-	return ('')  if ($expn =~ /\Wsystem\W/o);   #DON'T ALLOW SYSTEM CALLS!
+#	return ('')  if ($expn =~ /\Wsystem\W/o);   #DON'T ALLOW SYSTEM CALLS - THIS NOT GOOD WAY TO DETECT!
 
 	$expn =~ s/\&gt/>/go;	
 	$expn =~ s/\&lt/</go;	
 
-	$expn = 'package htmlpage;' . $expn;
+	$expn = 'package htmlpage; ' . $expn;
 	my $x = eval "$expn";
+	$x = "Invalid Perl Expression - returned $@"  unless (defined $x);
 	return ($x);
 };
 
@@ -799,7 +794,7 @@ sub makanop1
 	$two =~ s/^=//o;
 	$two =~ s/([^\[]*)(\[.*\])?/$three = $2; $1/e;
 	#$two =~ s/^=//;  #MOVED UP 2 LINES 20050523!
-	return ($two)  unless(defined($one) && defined($parms->{$one}) && "\Q$parms->{$one}\E");
+	return ($two)  unless(defined($one) && ref($parms) eq 'HASH' && defined($parms->{$one}) && "\Q$parms->{$one}\E");
 	if (defined($three) ? ($three =~ s/^\[(.*?)\]/$1/) : 0)
 	{
 		#$three =~ s/\:(\w+)/(${parms{$1}}||$two)/egx;  #JWT 19990611
@@ -862,7 +857,6 @@ sub makanop2
 	my $two = shift;
 
 	my ($rtn) = '';
-#print "<BR>-!!!- makanop2($one|$two)\n";
 	my ($picture);
 	$picture = $1  if ($two =~ s/\%(.*)\%//);
 	#$three = shift;
