@@ -15,7 +15,7 @@ eval 'use  LWP::Simple; $useLWP = 1;';
 @EXPORT = qw(loadhtml_package loadhtml buildhtml dohtml modhtml AllowEvals cnvt set_poc 
 		SetListSeperator SetRegices SetHtmlHome);
 
-our $VERSION = '7.04';
+our $VERSION = '7.08';
 
 local ($_);
 
@@ -208,6 +208,7 @@ sub makamath   #ADDED 20031028 TO SUPPORT IN-PARM EXPRESSIONS.
 sub makaloop
 {
 	my ($parms, $parmnos, $loopcontent, $looplabel) = @_;
+#print "---makaloop: args=".join('|',@_)."=\n";
 	my $rtn = '';
 	my ($lc,$i0,$i,$j,%loopparms);
 	my (@forlist);   #MOVED UP 20030515. - ORDERED LIST OF ALL HASH KEYS (IFF DRIVING PARAMETER IS A HASHREF).
@@ -220,7 +221,9 @@ sub makaloop
 #	if ($parmnos =~ s/([a-zA-Z]+)\s+([a-zA-Z])/$2/)    #CHANGED TO NEXT LN (20070831) TO ALLOW UNDERSCORES IN ITERATOR PARAMETER NAMES.
 	if ($parmnos =~ s/([a-zA-Z][a-zA-Z_]*)\s+([a-zA-Z])/$2/)
 	{
-		@vectorlist = @{$parms->{$1}};     #WE HAVE AN INDEX LIST PARAMETER (<!LOOP index arg1,arg2...>)
+#print "<BR>-LOADHTML: 1=$1= param=$$parms{$1}=\n";  #JWT:ADDED EVAL 20120309 TO PREVENT FATAL ERROR IF REFERENCE ARRAY MISSING!:
+		eval { @vectorlist = @{$parms->{$1}} };     #WE HAVE AN INDEX LIST PARAMETER (<!LOOP index arg1,arg2...>)
+#print "<BR>-???- 1st arg=$1=		VECTOR=".join('|',@vectorlist)."=\n";
 	}
 	elsif ($parmnos =~ s/(\d+\,\d+)((?:\,\d+)*)\s+([a-zA-Z])/$3/)    #WE HAVE A LITERAL INDEX LIST (<!LOOP 2,3,5,4 arg1,arg2...>)
 	{
@@ -232,6 +235,7 @@ sub makaloop
 #1ST IF-CHOICE ADDED 20070807 TO SUPPORT AN INDEX ARRAY OF HASH KEYS W/DRIVING PARAMETER OF TYPE HASHREF:
 	if (ref($parms->{$listparms[0]}) eq 'HASH' && defined($vectorlist[0]) && defined(${$parms->{$listparms[0]}}{$vectorlist[0]}))
 	{
+#print "<BR>-???- 1st is HASH:  VECTOR=".join('|',@vectorlist)."=\n";
 		#INDEX ARRAY CONTAINS HASH-KEYS AND 1ST (DRIVING) VECTOR IS A HASHREF:
 		@forlist = sort keys(%{$parms->{$listparms[0]}});
 		my @keys = @vectorlist;
@@ -251,6 +255,7 @@ sub makaloop
 	}
 	elsif (defined($vectorlist[0]) && $vectorlist[0] =~ /^\d+$/o)
 	{
+#print "<BR>-???2- VL=".join('|',@vectorlist)."=\n";
 		#INDEX ARRAY OF JUST NUMBERS:
 		if (ref($parms->{$listparms[0]}) eq 'HASH')
 		{
@@ -260,6 +265,7 @@ sub makaloop
 	}
 	else   #NO INDEX LIST, SEE IF WE HAVE INCREMENT EXPRESSION (ie. "0..10|2"), ELSE DETERMINE FROM 1ST PARAMETER:
 	{
+#print "<BR>-???3- NO INDEX LIST! vl0=$vectorlist[0]=\n";
 		my ($istart) = 0;
 		my ($iend) = undef;
 		my ($iinc) = 1;
@@ -290,15 +296,19 @@ sub makaloop
 				@forlist = @vectorlist;
 			}
 			$iend = $#forlist  unless (defined $iend);
+#print "<BR>-???- 1ST ARG IS HASH:  VL=".join('|',@vectorlist)."= FL=".join('|',@forlist)."=\n";
 		}
 		else
 		{
 #no strict 'refs';
+#print "<BR>-???- lp=".join('|',@listparms)."= parm0=$parms->{$listparms[0]}=\n";
+#print "<BR>-REF=".ref($parms->{$listparms[0]})."=\n";
 			unless (defined $iend)
 			{
 				$iend = (ref($parms->{$listparms[0]}) eq 'ARRAY'
 				    ? $#{$parms->{$listparms[0]}} : 0);
 			}
+#print "<BR>-iend=$iend=\n";
 		}
 		@vectorlist = ();
 		$i = $istart;
@@ -358,11 +368,13 @@ sub makaloop
 					my $eval0 = $eval;    #ADDED 20070831 TO SAVE FOR POSSIBLE REGRESSION.
 					$eval =~ s/$one/parms\-\>\{$one\}/;
 					$loopparms{$j} = eval $eval;
+#print "\n---- j=$j= parm=$parms->{$j}= eval=$eval= lp now=$loopparms{$j}= at=$@=\n";
 #					$loopparms{$j} = $parms->{$j}  if ($@);   #CHGD. TO NEXT 20070831 TO ALLOW RECURSION, IE. '$matrix->[*][*][0]', ETC.
 					if ($@)
 					{
 						$eval0 =~ s/(?:\-\>)?\[\d+\]//;  #STRIP OFF HIGH-ORDER DIMENSION SO THAT REFERENCE IS CORRECT W/N THE RECURSIVE CALL TO MAKALOOP!
 						$loopparms{$j} = $eval0;
+#print "-!!!- regressing back to lp=$loopparms{$j}=\n";
 					}
 				}
 				else
@@ -376,6 +388,7 @@ sub makaloop
 				$loopparms{$j} = $parms->{$j};
 			}
 		}
+#print "<BR>-???- ll=$looplabel= lc=$lc=\n";
 # (:# = CURRENT INDEX NUMBER INTO PARAMETER VECTORS; :* = ZERO-BASED ITERATION#; :% = CURRENT HASH KEY, IFF DRIVEN BY A HASHREF; :^ = NO. OF ITERATIONS TO BE DONE)
 		$lc =~ s#<\!\:\%(${looplabel})([^>]*?)>#&makanop2($parms,$forlist[$i],$2)#egs;  #MOVED HERE 20070713 FROM 267l TO MAKE :%_loopname HOLD KEY OF 1ST HASH!
 		$lc =~ s/\:\%${looplabel}/$forlist[$i]/egs;  #MOVED HERE 20070713 FROM 267l TO MAKE :%_loopname HOLD KEY OF 1ST HASH!
@@ -388,6 +401,8 @@ sub makaloop
 		$lc =~ s#<\!\:\*(${looplabel})([^>]*?)>#&makanop2($parms,$icnt,$2)#egs;
 		$lc =~ s/\:\*${looplabel}([\+\-\*]\d+)/eval("$icnt$1")/egs;   #ADDED 20020926 TO RETURN INCREMENT NUMBER (1ST = 0);
 		$lc =~ s/\:\*${looplabel}/$icnt/egs;
+#foreach my $x (sort keys %loopparms) { print "<BR>-loopparm($x)=$loopparms{$x}=\n"; };
+#print "<BR>--------------\n";
 
 		#IF-STMT BELOW ADDED 20070830 TO EMULATE Template::Toolkit's ABILITY TO REFERENCE
 		#SUBCOMPONENTS OF A REFERENCE BY NAME, IE:
@@ -401,6 +416,7 @@ sub makaloop
 			{
 				unless (defined $loopparms{$j})
 				{
+#print "<BR>-!!!- will convert $j w/1st parm a HASH! i=$i= j=$j= F=$forlist[$i]= lp0=$listparms[0]= parm=$parms->{$listparms[0]}= val=$parms->{$listparms[0]}{$forlist[$i]}=\n";
 					$lc =~ s#<\!\:$j([^>]*?)\:>.*?<\!\:\/\1>#&makanop1($parms->{$listparms[0]}{$forlist[$i]},$j,$1)#egs;
 					$lc =~ s#<\!\:$j([^>]*?)>#&makanop1($parms->{$listparms[0]}{$forlist[$i]},$j,$1)#egs;
 					$lc =~ s/\:\{$j\}/&makaswap($parms->{$listparms[0]}{$forlist[$i]},$j)/egs;   #ALLOW ":{word}"!
@@ -413,6 +429,7 @@ sub makaloop
 			{
 				unless (defined $loopparms{$j})
 				{
+#print "<BR>-!!!- will convert $j w/1st parm an ARRAY! i=$i= j=$j=  parm=$parms->{$listparms[0]}= val=$parms->{$listparms[0]}[$i]=\n";
 					$lc =~ s#<\!\:$j([^>]*?)\:>.*?<\!\:\/\1>#&makanop1($parms->{$listparms[0]}[$i],$j,$1)#egs;
 					$lc =~ s#<\!\:$j([^>]*?)>#&makanop1($parms->{$listparms[0]}[$i],$j,$1)#egs;
 					$lc =~ s/\:\{$j\}/&makaswap($parms->{$listparms[0]}[$i],$j)/egs;   #ALLOW ":{word}"!
@@ -615,8 +632,9 @@ sub makabutton
 	{
 		$two =~ s/(VALUE\s*=\")([^\"]*)(\")/&setbtnval($1,$2,$3)/ei;
 		$rtn = "$pre$one$two$parmno$four";
-		#$rtn =~ s/CHECKED//i  if (defined($myvalue));
-		$rtn =~ s/CHECKED//io  if (defined($parms->{$parmno})); #JWT: 19990609!
+#		$rtn =~ s/CHECKED//i  if (defined($myvalue)); #JWT:CHGD. TO NEXT: 19990609!
+#		$rtn =~ s/CHECKED//io  if (defined($parms->{$parmno})); #JWT:CHGD. TO NEXT: 20100830 (v7.05)!
+		$rtn =~ s/\bCHECKED\b//io  if (defined($parms->{$parmno}));
 		#if ((defined($myvalue) && $parms->{$parmno} eq $myvalue) || ($one =~ /CHECKBOX/i && $parms->{$parmno} =~ /\S/))
 		if (ref($parms->{$parmno}) eq 'ARRAY')  #NEXT 9 LINES ADDED 20000823
 		{                                     #TO FIX CHECKBOXES W/SAME NAME 
@@ -632,13 +650,14 @@ sub makabutton
 		}
 		#elsif ((defined($parms->{$parmno}) && defined($myvalue) && $parms->{$parmno} eq $myvalue) || ($one =~ /CHECKBOX/i && $parms->{$parmno} =~ /\S/)) #JWT: 19990609! - CHGD. 2 NEXT 20041020!
 		elsif ((defined($parms->{$parmno}) && defined($myvalue) && $parms->{$parmno} eq $myvalue) || (!defined($myvalue) && $one =~ /CHECKBOX/io && $parms->{$parmno} =~ /\S/o))
-		{
+		{	#NOTE:  IF NO "VALUE=" IS SPECIFIED, THEN CHECKED UNLESS PARAMETER IS EMPTY/UNDEFINED!!
 			$rtn =~ s/\:$parmno/ CHECKED/;
 		}
 		else
 		{
 			$rtn =~ s/\:$parmno//;
 		}
+#print "<BR>-loadhtml: myvalue=$myvalue= parmno=$parmno= parmval=".$parms->{$parmno}."= rtn=$rtn=\n";
 	}
 	else
 	{
@@ -794,6 +813,7 @@ sub makanop1
 	$two =~ s/^=//o;
 	$two =~ s/([^\[]*)(\[.*\])?/$three = $2; $1/e;
 	#$two =~ s/^=//;  #MOVED UP 2 LINES 20050523!
+#print "-???- 1=$one= 2=$two= parms=$parms=\n";
 	return ($two)  unless(defined($one) && ref($parms) eq 'HASH' && defined($parms->{$one}) && "\Q$parms->{$one}\E");
 	if (defined($three) ? ($three =~ s/^\[(.*?)\]/$1/) : 0)
 	{
@@ -857,6 +877,7 @@ sub makanop2
 	my $two = shift;
 
 	my ($rtn) = '';
+#print "<BR>-!!!- makanop2($one|$two)\n";
 	my ($picture);
 	$picture = $1  if ($two =~ s/\%(.*)\%//);
 	#$three = shift;
@@ -1061,11 +1082,11 @@ sub makaselect
 #		if (${($dfltindex{$dflttype}.'_options')}[$i] =~ /^${one}$/)
 		if (${$options->{$dfltindex{$dflttype}}}[$i] =~ /^${one}$/)
 		{
-			$rtn .= "<OPTION SELECTED VALUE=\"${$options->{value}}[$i]\">${$options->{sel}}[$i]\n";
+			$rtn .= "<OPTION SELECTED VALUE=\"${$options->{value}}[$i]\">${$options->{sel}}[$i]</OPTION>\n";
 		}
 		else
 		{
-			$rtn .= "<OPTION VALUE=\"${$options->{value}}[$i]\">${$options->{sel}}[$i]\n";
+			$rtn .= "<OPTION VALUE=\"${$options->{value}}[$i]\">${$options->{sel}}[$i]</OPTION>\n";
 		}
 	}
 	$rtn .= '</SELECT>';
@@ -1079,13 +1100,13 @@ sub modhtml
 
 	#NOW FOR THE REAL MAGIC (FROM ANCIENT EGYPTIAN TABLETS)!...
 
-	$$html =~ s#<\!HASH\s+(\w*?)\s*>(.*?)<\!\/HASH[^>]*>\s*#&buildahash($1,$2)#eigs
-			if ($cfgOps{hashes});
-
 	if ($cfgOps{loops})
 	{
 		while ($$html =~ s#<\!LOOP(\S*)\s+(.*?)>\s*(.*?)<\!/LOOP\1>\s*#&makaloop($parms, $2,$3,$1)#eis) {};
 	}
+
+	$$html =~ s#<\!HASH\s+(\w*?)\s*>(.*?)<\!\/HASH[^>]*>\s*#&buildahash($1,$2)#eigs
+			if ($cfgOps{hashes});
 
 	$$html =~ s#</FORM>#<INPUT NAME="CGIScript" TYPE=HIDDEN VALUE="$ENV{'SCRIPT_NAME'}">\n</FORM>#i 
 			if ($cfgOps{CGIScript});
@@ -1124,7 +1145,8 @@ sub modhtml
 
 	$$html =~ s#<\!\:(\w+)([^>]*?)\:>.*?<\!\:\/\1>#&makanop1($parms,$1,$2)#egs;
 	$$html =~ s#<\!\:(\w+)([^>]*?)>#&makanop1($parms,$1,$2)#egs;
-	$$html =~ s#(<SELECT\s+[^\:\>]*?\:\w+\s*>)(.*?)(<\/SELECT>)#&makasel($parms, $1,$2,$3)#eigs;
+#JWT:CHGD. TO NEXT 20100920 TO ALLOW STYLES IN SELECT TAG!	$$html =~ s#(<SELECT\s+[^\:\>]*?\:\w+\s*>)(.*?)(<\/SELECT>)#&makasel($parms, $1,$2,$3)#eigs;
+	$$html =~ s#(<SELECT\s+[^\>]*\>)(.*?)(<\/SELECT>)#&makasel($parms, $1,$2,$3)#eigs;
 	$$html =~ s#<\!SELECTLIST\s+(.*?)\:(\w+)\s*>(.*?)<\!\/SELECTLIST>\s*#&makaselect($parms, $1,$2,$3)#eigs;
 
 	$$html =~ s#(<TEXTAREA[^>]*?)\:(\w+)(?:\=([\"\']?)([^\3]*)\3|\>)?\s*>.*?(<\/TEXTAREA>)#$1.'>'.($parms->{$2}||$4).$5#eigs;
@@ -1282,7 +1304,7 @@ sub filedate    #ADDED 20020327
 	my @parmsave = @_;
 	@_ = ($mtime, $fmt);
 
-	eval { require 'to_char.pl'; };
+	eval "package $calling_package; require 'to_char.pl'";
 	if ($@)
 	{
 		@_ = @parmsave;
@@ -1292,7 +1314,9 @@ sub filedate    #ADDED 20020327
 	{
 		#@_ = (time, 'mm/dd/yy');
 		#do 'to_char.pl';
-		return &to_char($mtime, 'mm/dd/yy');	
+		my $qualified_fn = $calling_package . '::to_char';
+no strict 'refs';
+		return &{$qualified_fn}($mtime, $fmt);	
 	}
 	@_ = @parmsave;
 	return $rtnTime;
